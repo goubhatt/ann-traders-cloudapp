@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 
 const CLIENT_ID = "5c6hfnre21hvjgvtkgc2u6q4ph";
-const REDIRECT_URI = "http://localhost:3000/welcome";
+//const REDIRECT_URI = "http://localhost:3000/welcome";  //For local
+const REDIRECT_URI = "https://dak1rhhm5u7vh.cloudfront.net/welcome";
 const COGNITO_DOMAIN = "https://us-east-1zvty5khu2.auth.us-east-1.amazoncognito.com"; // Hosted UI domain
 const TOKEN_ENDPOINT = `${COGNITO_DOMAIN}/oauth2/token`;
 
@@ -19,6 +20,7 @@ function Home() {
 
 function Welcome() {
   const [token, setToken] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,14 +47,39 @@ function Welcome() {
       .then(res => res.json())
       .then(data => {
         setToken(data.id_token || "No token returned");
+        if (data.id_token) {
+          const decoded = JSON.parse(atob(data.id_token.split(".")[1]));
+          setUserInfo(decoded);
+        }
       })
-      .catch(() => setToken("Token fetch failed"));
+      .catch(err => {
+        console.error("Token fetch failed", err);
+        setToken("Token fetch failed");
+      });
   }, [navigate]);
 
+  const menuItems = ["List Items", "Add Items", "Modify Items", "Search Items", "Delete Items"];
+  
   return (
-    <div>
-      <h2>Welcome Page</h2>
-      <pre>{token}</pre>
+    <div style={{ display: "flex", height: "100vh", fontFamily: "Arial" }}>
+      <div style={{ width: "200px", background: "#f2f2f2", padding: "1rem" }}>
+        <h3>Menu</h3>
+        <ul style={{ listStyleType: "none", padding: 0 }}>
+          {menuItems.map((item) => (
+            <li key={item} style={{ margin: "0.5rem 0", cursor: "pointer" }}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <div style={{ flex: 1, padding: "2rem" }}>
+        <h2>Welcome Page</h2>
+        {userInfo && (
+          <>
+            <p><strong>Username:</strong> {userInfo["cognito:username"]}</p>
+            <p><strong>Email:</strong> {userInfo.email}</p>
+          </>
+        )}
+        {!userInfo && <p>Loading user info...</p>}
+      </div>
     </div>
   );
 }
